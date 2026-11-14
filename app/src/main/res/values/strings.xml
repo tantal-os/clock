@@ -1,0 +1,67 @@
+<resources>
+    <string name="app_name">Clock</string>
+    <string name="alarms">Alarms</string>
+    <string name="world">World</string>
+    <string name="timer">Timer</string>
+    <string name="stopwatch">Stopwatch</string>
+    <string name="settings">Settings</string>
+    <string name="close">Close</string>
+    <string name="back">Back</string>
+    <string name="remove">Remove</string>
+    <string name="remove_question">Remove %s?</string>
+    <string name="delete">Delete</string>
+    <string name="save">Save</string>
+    <string name="label">Label</string>
+    <string name="sound">Sound</string>
+    <string name="default_sound">Default</string>
+    <string name="vibrate">Vibrate</string>
+    <string name="days">%d d</string>
+    <string name="days_hours">%1$d d %2$d h</string>
+    <string name="hours">%d h</string>
+    <string name="minutes">%d min</string>
+    <string name="hours_minutes">%1$d h %2$d min</string>
+
+    <string name="alarm">Alarm</string>
+    <string name="new_alarm">New alarm</string>
+    <string name="edit_alarm">Edit alarm</string>
+    <string name="rising_volume">Rising volume</string>
+    <string name="rising_volume_summary">Over 30 seconds</string>
+    <string name="today">Today</string>
+    <string name="tomorrow">Tomorrow</string>
+    <string name="every_day">Every day</string>
+    <string name="no_alarms">No alarms</string>
+    <string name="no_alarms_hint">Tap the plus button to set the first one</string>
+    <string name="day_range">%1$s to %2$s</string>
+    <string name="in_span">In %s</string>
+    <string name="next_alarm">Next alarm · %s</string>
+    <string name="snooze">Snooze</string>
+    <string name="stop">Stop</string>
+    <string name="channel_ring">Alarms and timers going off</string>
+
+    <string name="add_zone">Add time zone</string>
+    <string name="search_zones">Search time zones</string>
+    <string name="tag">Tag</string>
+    <string name="same_time">Same time</string>
+    <string name="ahead">%s ahead</string>
+    <string name="behind">%s behind</string>
+
+    <string name="timers">Timers</string>
+    <string name="new_timer">New timer</string>
+    <string name="ends_at">Ends at %s</string>
+    <string name="of_total">of %s</string>
+    <string name="not_started">Not started</string>
+    <string name="add_minute">+1 min</string>
+    <string name="time_is_up">Time is up</string>
+    <string name="unit_hours">h</string>
+    <string name="unit_minutes">m</string>
+    <string name="unit_seconds">s</string>
+
+    <string name="start">Start</string>
+    <string name="pause">Pause</string>
+    <string name="reset">Reset</string>
+    <string name="lap">Lap</string>
+    <string name="lap_number">Lap %d</string>
+
+    <string name="snooze_length">Snooze length</string>
+    <string name="silence_after">Silence after</string>
+</resources>
