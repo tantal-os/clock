@@ -18,7 +18,7 @@ SDK that has the `android-37.2` platform.
 
 ## Releasing
 
-Push a tag `vX.Y` that matches `versionName` in `app/build.gradle.kts`. The
+Push a tag `vX.Y.Z` that matches `versionName` in `app/build.gradle.kts`. The
 workflow builds the APK, signs it with the official key and attaches it to a
 GitHub release together with its SHA-256. Nothing else is published: there
 are no debug or unsigned downloads.
