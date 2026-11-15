@@ -16,19 +16,6 @@ widget and Live Updates for running timers. No network access.
 Needs JDK 21 and `local.properties` with `sdk.dir` pointing to an Android
 SDK that has the `android-37.2` platform.
 
-## Releasing
-
-Push a tag `vX.Y.Z` that matches `versionName` in `app/build.gradle.kts`. The
-workflow builds the APK, signs it with the official key and attaches it to a
-GitHub release together with its SHA-256. Nothing else is published: there
-are no debug or unsigned downloads.
-
-The key is not in this repository. It is one key for all Tantal apps, kept in
-the organization secrets (`SIGNING_KEYSTORE` as a base64 PKCS12 keystore,
-`SIGNING_KEYSTORE_PASSWORD`, `SIGNING_KEY_ALIAS`) and shared only with the
-app repositories. The signing job runs in the `release` environment, which
-asks for approval before it starts.
-
 ## Contributing
 
 See the [contribution rules](https://github.com/tantal-os/.github/blob/main/CONTRIBUTING.md)
