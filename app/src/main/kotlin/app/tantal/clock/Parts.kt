@@ -7,6 +7,9 @@ import android.content.Intent
 import android.media.RingtoneManager
 import android.net.Uri
 import android.provider.Settings
+import android.text.format.DateFormat
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
@@ -20,14 +23,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -48,12 +51,14 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlinx.coroutines.launch
 
 // The corner radius is a fraction of the shorter side: `rest` when idle, squarer while pressed.
@@ -98,18 +103,15 @@ fun Key(
 // The top row of a screen that is opened over the tabs.
 @Composable
 fun Bar(title: String, icon: Int, iconLabel: Int, onClose: () -> Unit) {
-    Row(Modifier.height(64.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClose) { Icon(painterResource(icon), stringResource(iconLabel)) }
-        Text(title, Modifier.padding(start = 12.dp), style = MaterialTheme.typography.titleLarge)
-    }
-}
-
-// What a tab has to say right now, above its tiles.
-@Composable
-fun Headline(title: String, sub: String) {
-    Column(Modifier.padding(start = 8.dp, end = 8.dp)) {
-        Text(title, fontSize = 32.sp, lineHeight = 40.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(sub, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = ScreenGutter, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        FilledTonalIconButton(onClose, Modifier.size(48.dp)) {
+            Icon(painterResource(icon), stringResource(iconLabel))
+        }
+        Text(title, style = MaterialTheme.typography.headlineSmall)
     }
 }
 
@@ -129,12 +131,16 @@ fun Item(
     sub: String = "",
     icon: Int? = null,
     onClick: () -> Unit,
-    trailing: @Composable () -> Unit = {},
 ) {
+    SettingRow(title, sub, icon, Modifier.clickable(onClick = onClick)) {}
+}
+
+@Composable
+private fun SettingRow(title: String, sub: String, icon: Int?, action: Modifier, trailing: @Composable () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .then(action)
             .heightIn(min = 56.dp)
             .padding(start = if (icon != null) 8.dp else 24.dp, top = 8.dp, end = 24.dp, bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -146,13 +152,11 @@ fun Item(
             }
         }
         Column(Modifier.weight(1f)) {
-            Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title)
             if (sub.isNotEmpty()) {
                 Text(
                     sub,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -161,10 +165,11 @@ fun Item(
     }
 }
 
-// The whole row toggles, so the switch itself takes no touches.
 @Composable
 fun SwitchItem(title: String, sub: String = "", icon: Int? = null, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Item(title, sub, icon, onClick = { onChange(!checked) }) { Switch(checked, null) }
+    SettingRow(title, sub, icon, Modifier.toggleable(checked, role = Role.Switch, onValueChange = onChange)) {
+        Switch(checked, null)
+    }
 }
 
 @Composable
@@ -194,6 +199,7 @@ fun soundTitle(context: Context, sound: String): String =
 // Opens the system sound picker; an empty string stands for the system alarm sound.
 @Composable
 fun rememberSoundPicker(current: String, onPicked: (String) -> Unit): () -> Unit {
+    val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val picked = result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
         if (result.resultCode == Activity.RESULT_OK && picked != null) {
@@ -213,9 +219,21 @@ fun rememberSoundPicker(current: String, onPicked: (String) -> Unit): () -> Unit
         try {
             launcher.launch(intent)
         } catch (e: ActivityNotFoundException) {
-            // No sound picker on this system: the alarm keeps the sound it has.
+            Log.w("Clock", "No activity can open the alarm sound picker", e)
+            Toast.makeText(context, R.string.sound_picker_unavailable, Toast.LENGTH_SHORT).show()
         }
     }
+}
+
+internal fun clockTimeFormat(locale: Locale, hours24: Boolean): DateTimeFormatter =
+    if (hours24) DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "Hm"), locale)
+    else DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH)
+
+@Composable
+internal fun rememberTimeFormat(): DateTimeFormatter {
+    val locale = LocalConfiguration.current.locales[0]
+    val hours24 = DateFormat.is24HourFormat(LocalContext.current)
+    return remember(locale, hours24) { clockTimeFormat(locale, hours24) }
 }
 
 // "21 h", "21 h 5 min", "2 d 3 h": a rounded-up span for "in ..." lines.

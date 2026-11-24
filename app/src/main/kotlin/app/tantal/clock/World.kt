@@ -3,36 +3,24 @@ package app.tantal.clock
 import android.content.SharedPreferences
 import android.icu.util.TimeZone
 import android.text.format.DateFormat
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,16 +34,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.text.Collator
@@ -115,12 +98,6 @@ fun rememberNow(): Instant {
 }
 
 @Composable
-fun rememberTimeFormat(locale: Locale): DateTimeFormatter {
-    val hours24 = DateFormat.is24HourFormat(LocalContext.current)
-    return remember(locale, hours24) { DateTimeFormatter.ofPattern(if (hours24) "H:mm" else "h:mm a", locale) }
-}
-
-@Composable
 private fun difference(minutes: Int): String {
     if (minutes == 0) return stringResource(R.string.same_time)
     val hours = abs(minutes) / 60
@@ -139,64 +116,58 @@ fun World(zones: Zones, onAdd: () -> Unit) {
     val locale = LocalConfiguration.current.locales[0]
     val now = rememberNow()
     val home = ZoneId.systemDefault()
-    val time = rememberTimeFormat(locale)
+    val time = rememberTimeFormat()
     val date = remember(locale) {
         DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "EEEdMMM"), locale)
     }
     var editing by remember { mutableStateOf<Zone?>(null) }
 
-    Box(Modifier.fillMaxSize()) {
-        LazyVerticalGrid(
-            GridCells.Fixed(2),
-            // The bottom padding keeps the last row clear of the add button.
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 88.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+    Column(Modifier.fillMaxSize()) {
+        LazyColumn(
+            Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = ScreenGutter, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Column(Modifier.padding(start = 8.dp, end = 8.dp, bottom = 4.dp)) {
+            item {
+                val local = now.atZone(home)
+                ReadoutPanel {
+                    ReadoutLabel(stringResource(R.string.local_time), R.drawable.ic_public)
+                    ClockDigits(time.format(local), Modifier.fillMaxWidth(), max = 80.sp)
+                    Text(date.format(local), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        time.format(now.atZone(home)),
-                        autoSize = TextAutoSize.StepBased(40.sp, 96.sp, 1.sp),
-                        lineHeight = 104.sp,
-                        maxLines = 1,
-                    )
-                    Text(
-                        "${date.format(now.atZone(home))} · ${zoneName(home.id, locale)}",
-                        color = colors.onSurfaceVariant,
-                    )
-                }
-            }
-            items(zones.list, key = { it.id }) { zone ->
-                Column(
-                    Modifier
-                        .animateItem()
-                        .clip(RoundedCornerShape(28.dp))
-                        .background(colors.surfaceContainerLow)
-                        .clickable { editing = zone }
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(time.format(now.atZone(ZoneId.of(zone.id))), fontSize = 32.sp, lineHeight = 40.sp, maxLines = 1)
-                    Text(
-                        zone.tag.ifEmpty { zoneName(zone.id, locale) },
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        difference(offsetMinutes(ZoneId.of(zone.id), home, now)),
-                        color = colors.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        "${zoneName(home.id, locale)} · ${gmt(home.id, now, locale)}",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
+            if (zones.list.isNotEmpty()) item { ListHeading(stringResource(R.string.saved_zones)) }
+            items(zones.list, key = { it.id }) { zone ->
+                val remote = now.atZone(ZoneId.of(zone.id))
+                val title = zone.tag.ifEmpty { zoneName(zone.id, locale) }
+                val delta = difference(offsetMinutes(remote.zone, home, now))
+                val detail = if (remote.toLocalDate() == now.atZone(home).toLocalDate()) delta
+                else "${date.format(remote)} · $delta"
+                Surface(
+                    { editing = zone },
+                    Modifier.animateItem().fillMaxWidth(),
+                    shape = EntryShape,
+                    color = colors.surfaceContainerLow,
+                ) {
+                    Row(
+                        Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1.35f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(title, style = MaterialTheme.typography.titleSmall)
+                            Text(detail, color = colors.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        ClockDigits(time.format(remote), Modifier.weight(1f).wrapContentWidth(Alignment.End), max = 34.sp)
+                    }
+                }
+            }
         }
-        FloatingActionButton(onAdd, Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
-            Icon(painterResource(R.drawable.ic_add), stringResource(R.string.add_zone))
-        }
+        AddAction(R.string.add_zone, onAdd)
     }
 
     editing?.let { zone ->
@@ -241,7 +212,7 @@ fun ZonePicker(zones: Zones, onClose: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val locale = LocalConfiguration.current.locales[0]
     val now = rememberNow()
-    val time = rememberTimeFormat(locale)
+    val time = rememberTimeFormat()
     var query by rememberSaveable { mutableStateOf("") }
     // Many places share a zone, so each name is listed once for each offset it has now.
     val all = remember(locale) {
@@ -253,65 +224,65 @@ fun ZonePicker(zones: Zones, onClose: () -> Unit) {
             .distinctBy { it.name to it.offset }
             .sortedWith(compareBy<Choice> { it.offset }.thenBy(Collator.getInstance(locale)) { it.name })
     }
-    val added = zones.list.map { it.id }
+    val added = zones.list.map { it.id }.toSet()
+    val search = query.trim()
     val shown = all.filter {
-        it.id !in added && (it.name.contains(query.trim(), ignoreCase = true) || it.gmt.contains(query.trim(), ignoreCase = true))
+        it.id !in added && (it.name.contains(search, ignoreCase = true) || it.gmt.contains(search, ignoreCase = true))
     }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
 
-    Column(Modifier.safeDrawingPadding()) {
+    Column(Modifier.safeDrawingPadding().fillMaxSize()) {
         Bar(stringResource(R.string.add_zone), R.drawable.ic_close, R.string.close, onClose)
-        LazyColumn(Modifier.weight(1f)) {
-            items(shown, key = { it.id }) { choice ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            zones.add(choice.id)
-                            onClose()
-                        }
-                        .heightIn(min = 56.dp)
-                        .padding(horizontal = 24.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(choice.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(choice.gmt, color = colors.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
-                    }
+        OutlinedTextField(
+            query,
+            { query = it },
+            Modifier.fillMaxWidth().padding(horizontal = ScreenGutter).focusRequester(focus),
+            label = { Text(stringResource(R.string.search_zones)) },
+            leadingIcon = { Icon(painterResource(R.drawable.ic_search), null) },
+            singleLine = true,
+            shape = EntryShape,
+        )
+        LazyColumn(
+            Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = ScreenGutter, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (shown.isEmpty()) {
+                item {
                     Text(
-                        time.format(now.atZone(ZoneId.of(choice.id))),
+                        stringResource(R.string.no_matching_zones),
+                        Modifier.padding(12.dp),
                         color = colors.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
-        }
-        // Search sits at the bottom, under the thumb and right above the keyboard.
-        Row(
-            Modifier
-                .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 8.dp)
-                .fillMaxWidth()
-                .height(56.dp)
-                .clip(CircleShape)
-                .background(colors.surfaceContainerHigh)
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(painterResource(R.drawable.ic_search), null, tint = colors.onSurfaceVariant)
-            BasicTextField(
-                query,
-                { query = it },
-                Modifier.weight(1f).focusRequester(focus),
-                textStyle = LocalTextStyle.current.copy(color = colors.onSurface),
-                singleLine = true,
-                cursorBrush = SolidColor(colors.primary),
-            ) { field ->
-                Box {
-                    if (query.isEmpty()) Text(stringResource(R.string.search_zones), color = colors.onSurfaceVariant)
-                    field()
+            items(shown, key = { it.id }) { choice ->
+                Surface(
+                    onClick = {
+                        zones.add(choice.id)
+                        onClose()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = EntryShape,
+                    color = colors.surfaceContainerLow,
+                ) {
+                    Row(
+                        Modifier.heightIn(min = 60.dp).padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1.4f)) {
+                            Text(choice.name, style = MaterialTheme.typography.titleSmall)
+                            Text(choice.gmt, color = colors.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        ClockDigits(
+                            time.format(now.atZone(ZoneId.of(choice.id))),
+                            Modifier.weight(1f).wrapContentWidth(Alignment.End),
+                            min = 12.sp,
+                            max = 22.sp,
+                        )
+                    }
                 }
             }
         }

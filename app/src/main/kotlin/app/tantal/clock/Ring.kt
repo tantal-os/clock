@@ -26,34 +26,33 @@ import android.text.format.DateFormat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.tantal.theme.TantalTheme
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 private const val ACTION_STOP = "app.tantal.clock.STOP"
 
@@ -62,12 +61,6 @@ private const val ACTION_LATER = "app.tantal.clock.LATER"
 private const val CHANNEL = "ring"
 private const val NOTIFICATION = 1
 private const val RISE_SECONDS = 30
-
-fun alarmTime(context: Context, locale: Locale, hour: Int, minute: Int): String {
-    val skeleton = if (DateFormat.is24HourFormat(context)) "Hm" else "hm"
-    return DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, skeleton), locale)
-        .format(LocalTime.of(hour, minute))
-}
 
 class Receiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -112,7 +105,8 @@ class RingService : Service() {
         val title = (alarm?.label ?: timer?.label).orEmpty()
             .ifEmpty { getString(if (timer != null) R.string.timer else R.string.alarm) }
         val text = if (alarm != null) {
-            alarmTime(this, resources.configuration.locales[0], alarm.hour, alarm.minute)
+            clockTimeFormat(resources.configuration.locales[0], DateFormat.is24HourFormat(this))
+                .format(LocalTime.of(alarm.hour, alarm.minute))
         } else {
             getString(R.string.time_is_up)
         }
@@ -268,7 +262,7 @@ class RingActivity : ComponentActivity() {
 private fun Ringing(onDone: () -> Unit) {
     val context = LocalContext.current
     val colors = MaterialTheme.colorScheme
-    val locale = LocalConfiguration.current.locales[0]
+    val time = rememberTimeFormat()
     val store = remember { Store.get(context) }
     val target = store.ringing
     val id = target?.lastPathSegment?.toIntOrNull()
@@ -285,51 +279,56 @@ private fun Ringing(onDone: () -> Unit) {
 
     val kind = stringResource(if (alarm != null) R.string.alarm else R.string.timer)
     val label = (alarm?.label ?: timer?.label).orEmpty()
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(colors.primaryContainer)
-            .safeDrawingPadding()
-            .padding(start = 24.dp, top = 32.dp, end = 24.dp, bottom = 32.dp),
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                painterResource(if (alarm != null) R.drawable.ic_alarm else R.drawable.ic_hourglass),
-                null,
-                tint = colors.onPrimaryContainer,
-            )
-            Text(if (label.isEmpty()) kind else "$kind · $label", color = colors.onPrimaryContainer, maxLines = 1)
-        }
-        Text(
-            if (alarm != null) alarmTime(context, locale, alarm.hour, alarm.minute) else timerText(timer!!.total),
-            color = colors.onPrimaryContainer,
-            autoSize = TextAutoSize.StepBased(48.sp, 112.sp, 1.sp),
-            lineHeight = 120.sp,
-            maxLines = 1,
-        )
-        Spacer(Modifier.weight(1f))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Key(
-                Modifier.weight(1f).height(96.dp),
-                colors.surfaceContainerLowest,
-                colors.onSurface,
-                { send(ACTION_LATER) },
-                rest = 0.3f,
+    val reading = when {
+        alarm != null -> time.format(LocalTime.of(alarm.hour, alarm.minute))
+        timer != null -> timerText(timer.total)
+        else -> return
+    }
+
+    Surface(Modifier.fillMaxSize(), color = colors.primaryContainer, contentColor = colors.onPrimaryContainer) {
+        Box(Modifier.safeDrawingPadding(), contentAlignment = Alignment.TopCenter) {
+            Column(
+                Modifier.widthIn(max = ScreenWidth).fillMaxSize().padding(horizontal = 24.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    if (alarm != null) {
-                        Text(stringResource(R.string.snooze), fontSize = 24.sp, lineHeight = 28.sp)
-                        Text(
-                            stringResource(R.string.minutes, store.snoozeMinutes),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    } else {
-                        Text(stringResource(R.string.add_minute), fontSize = 24.sp, lineHeight = 28.sp)
+                Spacer(Modifier.weight(0.65f))
+                ReadoutLabel(
+                    if (label.isEmpty()) kind else "$kind · $label",
+                    if (alarm != null) R.drawable.ic_alarm else R.drawable.ic_hourglass,
+                )
+                ClockDigits(reading, Modifier.fillMaxWidth(), max = 96.sp)
+                if (timer != null) Text(stringResource(R.string.time_is_up), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.weight(1f))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        { send(ACTION_LATER) },
+                        Modifier.weight(1f).heightIn(min = 72.dp),
+                        shape = EntryShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.surfaceContainerLow,
+                            contentColor = colors.onSurface,
+                        ),
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            if (alarm != null) {
+                                Text(stringResource(R.string.snooze))
+                                Text(
+                                    stringResource(R.string.minutes, store.snoozeMinutes),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            } else {
+                                Text(stringResource(R.string.add_minute))
+                            }
+                        }
+                    }
+                    Button(
+                        { send(ACTION_STOP) },
+                        Modifier.weight(1f).heightIn(min = 72.dp),
+                        shape = EntryShape,
+                    ) {
+                        Text(stringResource(R.string.stop), style = MaterialTheme.typography.titleLarge)
                     }
                 }
-            }
-            Key(Modifier.weight(1.4f).height(96.dp), colors.primary, colors.onPrimary, { send(ACTION_STOP) }) {
-                Text(stringResource(R.string.stop), fontSize = 24.sp, lineHeight = 28.sp)
             }
         }
     }

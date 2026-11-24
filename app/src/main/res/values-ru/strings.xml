@@ -2,6 +2,7 @@
     <string name="app_name">Часы</string>
     <string name="alarms">Будильники</string>
     <string name="world">Мир</string>
+    <string name="world_clock">Мировое время</string>
     <string name="timer">Таймер</string>
     <string name="stopwatch">Секундомер</string>
     <string name="settings">Настройки</string>
@@ -14,6 +15,7 @@
     <string name="label">Название</string>
     <string name="sound">Звук</string>
     <string name="default_sound">По умолчанию</string>
+    <string name="sound_picker_unavailable">Системный выбор звука недоступен</string>
     <string name="vibrate">Вибрация</string>
     <string name="days">%d д</string>
     <string name="days_hours">%1$d д %2$d ч</string>
@@ -30,15 +32,23 @@
     <string name="tomorrow">Завтра</string>
     <string name="every_day">Каждый день</string>
     <string name="no_alarms">Будильников нет</string>
-    <string name="no_alarms_hint">Нажмите на плюс, чтобы поставить первый</string>
+    <string name="no_enabled_alarms">Все будильники выключены</string>
+    <string name="saved_alarms">Сохранённые будильники</string>
+    <string name="next_alarm">Ближайший будильник</string>
+    <string name="hour_field">Часы</string>
+    <string name="minute_field">Минуты</string>
+    <string name="time_field_range">От %1$d до %2$d</string>
+    <string name="repeat">Повтор</string>
     <string name="day_range">%1$s – %2$s</string>
     <string name="in_span">Через %s</string>
-    <string name="next_alarm">Следующий будильник · %s</string>
     <string name="snooze">Отложить</string>
     <string name="stop">Стоп</string>
     <string name="channel_ring">Сработавшие будильники и таймеры</string>
 
     <string name="add_zone">Добавить пояс</string>
+    <string name="local_time">Местное время</string>
+    <string name="saved_zones">Сохранённые пояса</string>
+    <string name="no_matching_zones">Нет подходящих часовых поясов</string>
     <string name="search_zones">Поиск поясов</string>
     <string name="tag">Тег</string>
     <string name="same_time">То же время</string>
@@ -47,9 +57,11 @@
 
     <string name="timers">Таймеры</string>
     <string name="new_timer">Новый таймер</string>
+    <string name="duration">Длительность</string>
+    <string name="timer_paused">Приостановлен</string>
+    <string name="total_duration">Всего %s</string>
+    <string name="delete_digit">Удалить цифру</string>
     <string name="ends_at">Закончится в %s</string>
-    <string name="of_total">из %s</string>
-    <string name="not_started">Не запущен</string>
     <string name="add_minute">+1 мин</string>
     <string name="time_is_up">Время вышло</string>
     <string name="unit_hours">ч</string>
@@ -61,6 +73,10 @@
     <string name="reset">Сброс</string>
     <string name="lap">Круг</string>
     <string name="lap_number">Круг %d</string>
+    <string name="elapsed_time">Прошло времени</string>
+    <string name="laps">Круги</string>
+    <string name="split_time">За круг</string>
+    <string name="total_time">Всего</string>
 
     <string name="snooze_length">Откладывать на</string>
     <string name="silence_after">Выключать звук через</string>

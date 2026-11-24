@@ -2,8 +2,10 @@ package app.tantal.clock
 
 import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -84,6 +86,16 @@ class TimeTest {
         assertEquals(timer, Timer.decode(timer.encode()))
         assertEquals(timer.reset(), Timer.decode(timer.reset().encode()))
         assertNull(Timer.decode("garbage"))
+    }
+
+    @Test
+    fun twelveHourTimeUsesEnglishPeriodMarkers() {
+        for (locale in listOf(Locale.US, Locale.forLanguageTag("ru-RU"), Locale.CHINA)) {
+            val format = clockTimeFormat(locale, hours24 = false)
+            assertEquals("12:05 AM", format.format(LocalTime.of(0, 5)))
+            assertEquals("12:05 PM", format.format(LocalTime.of(12, 5)))
+            assertEquals("7:05 PM", format.format(LocalTime.of(19, 5)))
+        }
     }
 
     @Test

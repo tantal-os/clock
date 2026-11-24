@@ -3,12 +3,19 @@ package app.tantal.clock
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,31 +48,51 @@ fun SettingsScreen(store: Store, onClose: () -> Unit) {
         store.settings.edit().putString("timer_sound", it).apply()
     }
 
-    Column(Modifier.safeDrawingPadding()) {
+    Column(Modifier.safeDrawingPadding().fillMaxSize()) {
         Bar(stringResource(R.string.settings), R.drawable.ic_arrow_back, R.string.back, onClose)
-        Section(stringResource(R.string.alarms))
-        Item(
-            stringResource(R.string.snooze_length),
-            stringResource(R.string.minutes, snooze),
-            R.drawable.ic_snooze,
-            onClick = { choosing = "snooze" },
-        )
-        Item(
-            stringResource(R.string.silence_after),
-            stringResource(R.string.minutes, silence),
-            R.drawable.ic_alarm_off,
-            onClick = { choosing = "silence" },
-        )
-        Section(stringResource(R.string.timers))
-        Item(
-            stringResource(R.string.sound),
-            remember(timerSound) { soundTitle(context, timerSound) },
-            R.drawable.ic_music_note,
-            onClick = pickSound,
-        )
-        SwitchItem(stringResource(R.string.vibrate), icon = R.drawable.ic_vibration, checked = timerVibrate) {
-            timerVibrate = it
-            store.settings.edit().putBoolean("timer_vibrate", it).apply()
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(bottom = 16.dp)) {
+            Section(stringResource(R.string.alarms))
+            Surface(
+                Modifier.fillMaxWidth().padding(horizontal = ScreenGutter),
+                shape = EntryShape,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+            ) {
+                Column {
+                    Item(
+                        stringResource(R.string.snooze_length),
+                        stringResource(R.string.minutes, snooze),
+                        R.drawable.ic_snooze,
+                        onClick = { choosing = "snooze" },
+                    )
+                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    Item(
+                        stringResource(R.string.silence_after),
+                        stringResource(R.string.minutes, silence),
+                        R.drawable.ic_alarm_off,
+                        onClick = { choosing = "silence" },
+                    )
+                }
+            }
+            Section(stringResource(R.string.timers))
+            Surface(
+                Modifier.fillMaxWidth().padding(horizontal = ScreenGutter),
+                shape = EntryShape,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+            ) {
+                Column {
+                    Item(
+                        stringResource(R.string.sound),
+                        remember(timerSound) { soundTitle(context, timerSound) },
+                        R.drawable.ic_music_note,
+                        onClick = pickSound,
+                    )
+                    HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+                    SwitchItem(stringResource(R.string.vibrate), icon = R.drawable.ic_vibration, checked = timerVibrate) {
+                        timerVibrate = it
+                        store.settings.edit().putBoolean("timer_vibrate", it).apply()
+                    }
+                }
+            }
         }
     }
 
